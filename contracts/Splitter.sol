@@ -24,7 +24,7 @@ contract Splitter is Stoppable {
             alice.transfer(1);  // refund 1 wei if split amount is odd
         }
 
-        bob.transfer(msg.value / 2);
+        bob.transfer(address(this).balance / 2);
         carol.transfer(address(this).balance);
 
         emit LogFundsSplit(bob, carol, msg.value);
