@@ -1,9 +1,9 @@
 pragma solidity ^0.5.0;
 
 contract Owned {
-    address public owner;
+    address private owner;
 
-    event LogChangeOwner(address sender, address newOwner);
+    event LogChangeOwner(address indexed sender, address newOwner);
 
     modifier onlyOwner {
         require(msg.sender == owner, "Sender not authorized");
@@ -15,8 +15,11 @@ contract Owned {
     }
 
     function changeOwner(address newOwner) public onlyOwner returns(bool success) {
+        require(newOwner != address(0x0), "New Owner can't be empty address");
         owner = newOwner;
+
         emit LogChangeOwner(msg.sender, newOwner);
+
         return true;
     }
 }

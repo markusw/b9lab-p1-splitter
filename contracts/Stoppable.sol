@@ -4,7 +4,7 @@ import "./Owned.sol";
 
 contract Stoppable is Owned {
 
-    bool isRunning;
+    bool private isRunning;
 
     event LogPausedContract(address sender);
     event LogResumedContract(address sender);
