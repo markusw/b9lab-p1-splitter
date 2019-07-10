@@ -4,30 +4,47 @@ import "./Stoppable.sol";
 
 contract Splitter is Stoppable {
 
-    address payable public alice;
-    address payable public bob;
-    address payable public carol;
+    mapping(address => uint) public balances;
 
-    event LogFundsSplit(address split1, address split2, uint amount);
+    event LogSplitFunds(
+        address indexed sender,
+        address indexed receiver1,
+        address indexed receiver2,
+        uint amount
+    );
 
-    constructor(address payable _bob, address payable _carol) public {
-        alice = msg.sender;
-        bob = _bob;
-        carol = _carol;
-    }
+    event LogWithdraw(
+        address indexed withdrawAddress,
+        uint amount
+    );
 
-    function splitFunds() public payable onlyIfRunning returns(bool success) {
-        require(bob != address(0x0) && carol != address(0x0), "Avoid losing Ether");
+    function splitFunds(address receiver1, address receiver2) public payable onlyIfRunning returns(bool success) {
+        require(receiver1 != address(0x0) && receiver2 != address(0x0), "receiving address can't be empty");
         require(msg.value > 0, "Needs ether");
 
+        uint amount = msg.value;
+
         if (msg.value % 2 != 0) {
-            alice.transfer(1);  // refund 1 wei if split amount is odd
+            balances[msg.sender] += 1;  // add 1 wei to senders balance if amount is odd
+            amount -= 1;
         }
 
-        bob.transfer(address(this).balance / 2);
-        carol.transfer(address(this).balance);
+        balances[receiver1] += amount / 2;
+        balances[receiver2] += amount / 2;
 
-        emit LogFundsSplit(bob, carol, msg.value);
+        emit LogSplitFunds(msg.sender, receiver1, receiver2, msg.value);
+
+        return true;
+    }
+
+    function withdrawFunds() public onlyIfRunning returns(bool success) {
+        require(balances[msg.sender] > 0, "No balance to withdraw");
+
+        uint withdrawAmount = balances[msg.sender];
+        balances[msg.sender] = 0;
+        msg.sender.transfer(withdrawAmount);
+
+        emit LogWithdraw(msg.sender, withdrawAmount);
 
         return true;
     }

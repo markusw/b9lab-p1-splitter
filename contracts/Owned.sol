@@ -16,6 +16,7 @@ contract Owned {
 
     function changeOwner(address newOwner) public onlyOwner returns(bool success) {
         require(newOwner != address(0x0), "New Owner can't be empty address");
+        require(newOwner != owner, "Already the owner");
         owner = newOwner;
 
         emit LogChangeOwner(msg.sender, newOwner);
