@@ -2,5 +2,6 @@
    Contract that splits ETH between 2 addresses
 
 ## TODO
-   Truffle tests
-   Web App
+- [x] Add withdraw function
+- [ ] Truffle tests
+- [ ] Web App
