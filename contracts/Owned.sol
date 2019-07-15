@@ -23,4 +23,8 @@ contract Owned {
 
         return true;
     }
+
+    function getOwner() public view returns(address) {
+        return owner;
+    }
 }

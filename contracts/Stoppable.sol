@@ -30,4 +30,8 @@ contract Stoppable is Owned {
         emit LogResumedContract(msg.sender);
         return true;
     }
+
+    function getIsRunning() public view returns(bool) {
+        return isRunning;
+    }
 }
