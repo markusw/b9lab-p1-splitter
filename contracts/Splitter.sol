@@ -13,7 +13,7 @@ contract Splitter is Stoppable {
         uint amount
     );
 
-    event LogWithdraw(
+    event LogWithdrawn(
         address indexed withdrawAddress,
         uint amount
     );
@@ -25,8 +25,7 @@ contract Splitter is Stoppable {
         uint amount = msg.value;
 
         if (msg.value % 2 != 0) {
-            balances[msg.sender] += 1;  // add 1 wei to senders balance if amount is odd
-            amount -= 1;
+            balances[msg.sender] += msg.value % 2;  // add 1 wei to senders balance if amount is odd
         }
 
         balances[receiver1] += amount / 2;
@@ -38,13 +37,13 @@ contract Splitter is Stoppable {
     }
 
     function withdrawFunds() public onlyIfRunning returns(bool success) {
-        require(balances[msg.sender] > 0, "No balance to withdraw");
-
         uint withdrawAmount = balances[msg.sender];
-        balances[msg.sender] = 0;
-        msg.sender.transfer(withdrawAmount);
+        require(withdrawAmount > 0, "No balance to withdraw");
 
-        emit LogWithdraw(msg.sender, withdrawAmount);
+        balances[msg.sender] = 0;
+
+        emit LogWithdrawn(msg.sender, withdrawAmount);
+        msg.sender.transfer(withdrawAmount);
 
         return true;
     }
