@@ -1,0 +1,33 @@
+{
+  "name": "p1-splitter",
+  "version": "1.0.0",
+  "description": "Contract that splits ETH between 2 addresses",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/syq3/b9lab-p1-splitter.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/syq3/b9lab-p1-splitter/issues"
+  },
+  "homepage": "https://github.com/syq3/b9lab-p1-splitter#readme",
+  "dependencies": {
+    "bluebird": "^3.5.5",
+    "jquery": "^3.4.1",
+    "truffle-contract": "^4.0.24",
+    "web3": "^1.0.0-beta.37"
+  },
+  "devDependencies": {
+    "file-loader": "^4.0.0",
+    "webpack": "^4.35.3",
+    "webpack-cli": "^3.3.6"
+  }
+}
