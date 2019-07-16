@@ -1,8 +1,10 @@
 pragma solidity ^0.5.0;
 
+import "./SafeMath.sol";
 import "./Stoppable.sol";
 
 contract Splitter is Stoppable {
+    using SafeMath for uint;
 
     mapping(address => uint) public balances;
 
@@ -18,16 +20,18 @@ contract Splitter is Stoppable {
         uint amount
     );
 
+    constructor(bool initialRunState) public Stoppable(initialRunState) {}
+
     function splitFunds(address receiver1, address receiver2) public payable onlyIfRunning returns(bool success) {
         require(receiver1 != address(0x0) && receiver2 != address(0x0), "receiving address can't be empty");
         require(msg.value > 0, "Needs ether");
 
-        if (msg.value % 2 != 0) {
-            balances[msg.sender] += msg.value % 2;  // add 1 wei to senders balance if amount is odd
+        if (msg.value.mod(2) != 0) {
+            balances[msg.sender] = balances[msg.sender].add(1); // add 1 wei to senders balance if amount is odd
         }
 
-        balances[receiver1] += msg.value / 2;
-        balances[receiver2] += msg.value / 2;
+        balances[receiver1] = balances[receiver1].add(msg.value.div(2));
+        balances[receiver2] = balances[receiver2].add(msg.value.div(2));
 
         emit LogSplitFunds(msg.sender, receiver1, receiver2, msg.value);
 

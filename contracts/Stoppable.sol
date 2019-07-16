@@ -3,35 +3,52 @@ pragma solidity ^0.5.0;
 import "./Owned.sol";
 
 contract Stoppable is Owned {
-
-    bool private isRunning;
+    bool private running;
+    bool private killed;
 
     event LogPausedContract(address sender);
     event LogResumedContract(address sender);
+    event LogKilledContract(address sender);
 
     modifier onlyIfRunning {
-        require(isRunning, "Is not running");
+        require(running, "Is not running");
+        require(!killed, "Contract is killed");
         _;
     }
 
-    constructor() public {
-        isRunning = true;
+    modifier onlyIfPaused {
+        require(!running, "Is not paused");
+        _;
+    }
+
+    constructor(bool initialRunState) public {
+        running = initialRunState;
+        killed = false;
     }
 
     function pauseContract() public onlyOwner onlyIfRunning returns(bool success) {
-        isRunning = false;
+        running = false;
         emit LogPausedContract(msg.sender);
         return true;
     }
 
-    function resume() public onlyOwner returns(bool success) {
-        require(!isRunning, "Is already running");
-        isRunning = true;
+    function resume() public onlyOwner onlyIfPaused returns(bool success) {
+        running = true;
         emit LogResumedContract(msg.sender);
         return true;
     }
 
-    function getIsRunning() public view returns(bool) {
-        return isRunning;
+    function killContract() public onlyOwner returns(bool success) {
+        killed = true;
+        emit LogKilledContract(msg.sender);
+        return true;
+    }
+
+    function isRunning() public view returns(bool) {
+        return running;
+    }
+
+    function isKilled() public view returns(bool) {
+        return killed;
     }
 }
