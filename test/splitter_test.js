@@ -17,7 +17,13 @@ contract("Splitter", accounts => {
             const txObj = await SplitterInstance.splitFunds(receiver1, receiver2, {from: sender, value: amount});
 
             // test event
-            assert.equal(txObj.logs[0].event, "LogSplitFunds", "Didn't emit right event")
+            assert(txObj.logs.length > 0, "Logs empty");
+            assert.equal(txObj.logs[0].event, "LogSplitFunds", "Didn't emit right event");
+            // check for correct args
+            assert.equal(txObj.logs[0].args.sender, sender, "Logged wrong sending address");
+            assert.equal(txObj.logs[0].args.receiver1, receiver1, "Logged wrong address for receiver1");
+            assert.equal(txObj.logs[0].args.receiver2, receiver2, "Logged wrong address for receiver2");
+            assert.equal(txObj.logs[0].args.amount.toString(), amount.toString(), "Logged wrong amount");
 
             // get balances
             const receiver1Balance = (await SplitterInstance.balances(receiver1)).toString();
