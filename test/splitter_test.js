@@ -1,29 +1,30 @@
 const Splitter = artifacts.require("./Splitter.sol");
+const { toBN } = web3.utils;
 
 contract("Splitter", accounts => {
     // accounts
-    const owner = accounts[0];
-    const sender = accounts[1];
-    const receiver1 = accounts[2];
-    const receiver2 = accounts[3];
-    const otherAddress = accounts[4];
+    const [owner, sender, receiver1, receiver2, otherAddress] = accounts;
 
-    beforeEach(async () => {
-        SplitterInstance = await Splitter.new();
+    beforeEach("Get new Splitter instance before each test", async () => {
+        SplitterInstance = await Splitter.new({from: owner});
     })
 
     describe("Test splitting functionality", async() => {
         it("Should split even amount between two receivers", async() => {
             // Send 100 wei to split function
             const amount = 100; 
-            await SplitterInstance.splitFunds(receiver1, receiver2, {from: sender, value: amount});
+
+            const txObj = await SplitterInstance.splitFunds(receiver1, receiver2, {from: sender, value: amount});
+
+            // test event
+            assert.equal(txObj.logs[0].event, "LogSplitFunds", "Didn't emit right event")
 
             // get balances
-            const receiver1Balance = (await SplitterInstance.balances(receiver1)).toNumber();
-            const receiver2Balance = (await SplitterInstance.balances(receiver2)).toNumber();
+            const receiver1Balance = (await SplitterInstance.balances(receiver1)).toString();
+            const receiver2Balance = (await SplitterInstance.balances(receiver2)).toString();
 
-            assert.equal(receiver1Balance, amount / 2, "Receiver 1 didn't get correct amount")
-            assert.equal(receiver2Balance, amount / 2, "Receiver 2 didn't get correct amount")
+            assert.equal(receiver1Balance, (amount / 2).toString(), "Receiver 1 didn't get correct amount")
+            assert.equal(receiver2Balance, (amount / 2).toString(), "Receiver 2 didn't get correct amount")
         });
 
         it("Should split odd amounts and credit 1 wei to the senders balance", async () => {
@@ -32,34 +33,35 @@ contract("Splitter", accounts => {
             await SplitterInstance.splitFunds(receiver1, receiver2, {from: sender, value: amount});
 
             // get balances
-            const senderBalance = (await SplitterInstance.balances(sender)).toNumber();
-            const receiver1Balance = (await SplitterInstance.balances(receiver1)).toNumber();
-            const receiver2Balance = (await SplitterInstance.balances(receiver2)).toNumber();
+            const senderBalance = (await SplitterInstance.balances(sender)).toString();
+            const receiver1Balance = (await SplitterInstance.balances(receiver1)).toString();
+            const receiver2Balance = (await SplitterInstance.balances(receiver2)).toString();
+            const amountExpected = ((amount -1) / 2).toString()
 
-            assert.equal(senderBalance, 1, "Didn't credit sender with 1 wei")
-            assert.equal(receiver1Balance, (amount -1) / 2, "Receiver 1 didn't get correct amount")
-            assert.equal(receiver2Balance, (amount -1) / 2, "Receiver 2 didn't get correct amount")
+            assert.equal(senderBalance, "1", "Didn't credit sender with 1 wei")
+            assert.equal(receiver1Balance, amountExpected, "Receiver 1 didn't get correct amount")
+            assert.equal(receiver2Balance, amountExpected, "Receiver 2 didn't get correct amount")
         });
     });
 
     describe("Test withdrawals", async () => {
-        beforeEach("Split funds", async () => {
+        beforeEach("Split funds before test", async () => {
             const amount = 100;
             await SplitterInstance.splitFunds(receiver1, receiver2, {from: sender, value: amount});
         });
 
         it("Receiver 1 should be able to withdraw funds, balance should be zero after withdrawal", async () => {
-            const amount = web3.utils.toBN(100);
+            const amount = toBN(100);
 
             // calculate expected amount
-            ethBeforeWithdrawal = web3.utils.toBN(await web3.eth.getBalance(receiver1));
+            ethBeforeWithdrawal = toBN(await web3.eth.getBalance(receiver1));
 
             txLog = await SplitterInstance.withdrawFunds({ from: receiver1 });
-            gasUsed = web3.utils.toBN(txLog.receipt.gasUsed);
-            gasPrice = web3.utils.toBN((await web3.eth.getTransaction(txLog.tx)).gasPrice)
-            txCost = web3.utils.toBN(gasPrice).mul(gasUsed);
+            gasUsed = toBN(txLog.receipt.gasUsed);
+            gasPrice = toBN((await web3.eth.getTransaction(txLog.tx)).gasPrice)
+            txCost = toBN(gasPrice).mul(gasUsed);
 
-            ethExpected = ethBeforeWithdrawal.add(amount.div(web3.utils.toBN(2))).sub(txCost);
+            ethExpected = ethBeforeWithdrawal.add(amount.div(toBN(2))).sub(txCost);
 
             // get actual account balance
             ethAfterWithdrawal = await web3.eth.getBalance(receiver1);

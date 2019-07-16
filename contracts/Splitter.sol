@@ -22,14 +22,12 @@ contract Splitter is Stoppable {
         require(receiver1 != address(0x0) && receiver2 != address(0x0), "receiving address can't be empty");
         require(msg.value > 0, "Needs ether");
 
-        uint amount = msg.value;
-
         if (msg.value % 2 != 0) {
             balances[msg.sender] += msg.value % 2;  // add 1 wei to senders balance if amount is odd
         }
 
-        balances[receiver1] += amount / 2;
-        balances[receiver2] += amount / 2;
+        balances[receiver1] += msg.value / 2;
+        balances[receiver2] += msg.value / 2;
 
         emit LogSplitFunds(msg.sender, receiver1, receiver2, msg.value);
 
