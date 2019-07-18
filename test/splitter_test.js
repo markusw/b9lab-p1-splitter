@@ -17,9 +17,11 @@ contract("Splitter", accounts => {
 
             const txObj = await SplitterInstance.splitFunds(receiver1, receiver2, {from: sender, value: amount});
 
-            // test event
-            truffleAssert.eventEmitted(txObj, "LogSplitFunds", (ev) => { 
-                return ev.sender == sender && ev.receiver1 == receiver1 && ev.receiver2 == receiver2 && amount == amount;
+            truffleAssert.eventEmitted(txObj, "LogSplitFunds", { 
+                sender: sender,
+                receiver1: receiver1,
+                receiver2: receiver2,
+                amount: toBN(amount)
             });
 
             // get balances
