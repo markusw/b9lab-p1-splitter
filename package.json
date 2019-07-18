@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "file-loader": "^4.0.0",
+    "truffle-assertions": "^0.9.1",
     "webpack": "^4.35.3",
     "webpack-cli": "^3.3.6"
   }

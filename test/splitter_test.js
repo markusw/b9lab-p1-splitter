@@ -1,4 +1,5 @@
 const Splitter = artifacts.require("./Splitter.sol");
+const truffleAssert = require('truffle-assertions');
 const { toBN } = web3.utils;
 
 contract("Splitter", accounts => {
@@ -17,13 +18,9 @@ contract("Splitter", accounts => {
             const txObj = await SplitterInstance.splitFunds(receiver1, receiver2, {from: sender, value: amount});
 
             // test event
-            assert(txObj.logs.length > 0, "Logs empty");
-            assert.equal(txObj.logs[0].event, "LogSplitFunds", "Didn't emit right event");
-            // check for correct args
-            assert.equal(txObj.logs[0].args.sender, sender, "Logged wrong sending address");
-            assert.equal(txObj.logs[0].args.receiver1, receiver1, "Logged wrong address for receiver1");
-            assert.equal(txObj.logs[0].args.receiver2, receiver2, "Logged wrong address for receiver2");
-            assert.equal(txObj.logs[0].args.amount.toString(), amount.toString(), "Logged wrong amount");
+            truffleAssert.eventEmitted(txObj, "LogSplitFunds", (ev) => { 
+                return ev.sender == sender && ev.receiver1 == receiver1 && ev.receiver2 == receiver2 && amount == amount;
+            });
 
             // get balances
             const receiver1Balance = (await SplitterInstance.balances(receiver1)).toString();
@@ -60,60 +57,107 @@ contract("Splitter", accounts => {
             const amount = toBN(100);
 
             // calculate expected amount
-            ethBeforeWithdrawal = toBN(await web3.eth.getBalance(receiver1));
+            const ethBeforeWithdrawal = toBN(await web3.eth.getBalance(receiver1));
 
-            txLog = await SplitterInstance.withdrawFunds({ from: receiver1 });
-            gasUsed = toBN(txLog.receipt.gasUsed);
-            gasPrice = toBN((await web3.eth.getTransaction(txLog.tx)).gasPrice)
-            txCost = toBN(gasPrice).mul(gasUsed);
+            const txObj = await SplitterInstance.withdrawFunds({ from: receiver1 });
+            const gasUsed = toBN(txObj.receipt.gasUsed);
+            const gasPrice = toBN((await web3.eth.getTransaction(txObj.tx)).gasPrice)
+            const txCost = toBN(gasPrice).mul(gasUsed);
 
-            ethExpected = ethBeforeWithdrawal.add(amount.div(toBN(2))).sub(txCost);
+            const ethExpected = ethBeforeWithdrawal.add(amount.div(toBN(2))).sub(txCost);
 
             // get actual account balance
-            ethAfterWithdrawal = await web3.eth.getBalance(receiver1);
+            const ethAfterWithdrawal = await web3.eth.getBalance(receiver1);
             
             assert.equal(ethExpected.toString(), ethAfterWithdrawal.toString(), "Didn't withdraw correct amount");
 
-            balanceAfter = await SplitterInstance.balances(receiver1);
+            const balanceAfter = await SplitterInstance.balances(receiver1);
             assert.equal(balanceAfter, "0", "funds left after withdrawal")
 
+            // test event
+            truffleAssert.eventEmitted(txObj, "LogWithdrawn", (ev) => { 
+                return ev.withdrawAddress == receiver1 && ev.amount == amount / 2;
+            });
         });
     });
-    describe("Pausing and changing owner", async() => {
+    describe("Changing owner", async() => {
         it("Should be possible to change owner", async() => {
             // change owner to otherAddress
-            await SplitterInstance.changeOwner(otherAddress, {from: owner});
+            const txObj = await SplitterInstance.changeOwner(otherAddress, {from: owner});
 
             // get owner of contract
-            newOwner = await SplitterInstance.getOwner();
+            const newOwner = await SplitterInstance.getOwner();
 
             assert.equal(otherAddress, newOwner, "Owner not changed correctly");
+
+            // test event
+            truffleAssert.eventEmitted(txObj, "LogChangeOwner", (ev) => { 
+                return ev.sender == owner && ev.newOwner == otherAddress;
+            });
         });
-
-        it("Should be possible to pause contract", async() => {
-            // pause the contract
-            await SplitterInstance.pauseContract({from: owner});
-            // get status
-            contractStatus = await SplitterInstance.getIsRunning();
-
-            assert.equal(contractStatus, false);
-        })
 
         it("Non-owner shouldn't be able to change contract owner", async() => {
             try {
-                await SplitterInstance.changeOwner(otherAddress, {from: receiver1});
+                const txObj = await SplitterInstance.changeOwner(otherAddress, {from: receiver1});
+                truffleAssert.eventNotEmitted(txObj, 'LogChangeOwner');
             }
             catch (err) {
                 assert.equal(err.reason, "Sender not authorized");
             }
-        })
+        });
+    });
+
+    describe("Pausing and killing contract", async() => {
+        it("Should be possible to pause contract", async() => {
+            // pause the contract
+            const txObj = await SplitterInstance.pauseContract({from: owner});
+            // get status
+            const contractStatus = await SplitterInstance.isRunning();
+
+            assert.equal(contractStatus, false);
+
+            // test event
+            truffleAssert.eventEmitted(txObj, "LogPausedContract", (ev) => { 
+                return ev.sender == owner;
+            });
+        });
+        
+        it("Should be possible to kill contract", async() => {
+            // pause then kill the contract
+            await SplitterInstance.pauseContract({from: owner});
+            const txObj = await SplitterInstance.killContract({from: owner});
+
+            // test event
+            truffleAssert.eventEmitted(txObj, "LogKilledContract", {sender: owner})
+
+            // check if contract can be resumed
+            try {
+                await SplitterInstance.resume();
+            } 
+            catch (err) {
+                assert.equal(err.reason, "Contract is killed");
+            }
+
+            assert.equal(await SplitterInstance.isRunning(), false);
+        });
 
         it("Non-owner shouldn't be able to pause or resume the contract", async() => {
             try {
-                await SplitterInstance.pauseContract({from: receiver1});
+                const txObj = await SplitterInstance.pauseContract({from: receiver1});
+                truffleAssert.eventNotEmitted(txObj, 'LogPausedContract');
             }
             catch (err) {
                 assert.equal(err.reason, "Sender not authorized");
+            }
+        });
+        
+        it("Should not be possible to kill running contract", async() => {
+            try {
+                const txObj = await SplitterInstance.killContract({from: owner});
+                truffleAssert.eventNotEmitted(txObj, 'LogKilledContract');
+            }
+            catch (err) {
+                assert.equal(err.reason, "Is not paused");
             }
         });
     });
