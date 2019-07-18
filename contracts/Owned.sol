@@ -3,7 +3,7 @@ pragma solidity ^0.5.0;
 contract Owned {
     address private owner;
 
-    event LogChangeOwner(address indexed sender, address newOwner);
+    event LogChangeOwner(address indexed sender, address indexed newOwner);
 
     modifier onlyOwner {
         require(msg.sender == owner, "Sender not authorized");
