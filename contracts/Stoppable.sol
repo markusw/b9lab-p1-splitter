@@ -12,7 +12,6 @@ contract Stoppable is Owned {
 
     modifier onlyIfRunning {
         require(running, "Is not running");
-        require(!killed, "Contract is killed");
         _;
     }
 
@@ -21,9 +20,13 @@ contract Stoppable is Owned {
         _;
     }
 
+    modifier onlyIfAlive {
+        require(!killed, "Contract is killed");
+        _;
+    }
+
     constructor(bool initialRunState) public {
         running = initialRunState;
-        killed = false;
     }
 
     function pauseContract() public onlyOwner onlyIfRunning returns(bool success) {
@@ -32,13 +35,13 @@ contract Stoppable is Owned {
         return true;
     }
 
-    function resume() public onlyOwner onlyIfPaused returns(bool success) {
+    function resume() public onlyOwner onlyIfPaused onlyIfAlive returns(bool success) {
         running = true;
         emit LogResumedContract(msg.sender);
         return true;
     }
 
-    function killContract() public onlyOwner returns(bool success) {
+    function killContract() public onlyOwner onlyIfPaused returns(bool success) {
         killed = true;
         emit LogKilledContract(msg.sender);
         return true;
